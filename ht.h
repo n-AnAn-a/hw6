@@ -279,6 +279,7 @@ private:
     size_t numItems_;
 
     void insertInternal(const ItemType& p, bool skipResize);
+    size_t numOccupied_;
 
 };
 
@@ -305,6 +306,7 @@ HashTable<K,V,Prober,Hash,KEqual>::HashTable(
     mIndex_ = 0;
     this->resizeAlpha_ = resizeAlpha;
     numItems_ = 0;
+    numOccupied_ = 0;
     totalProbes_ = 0;
     table_.resize(CAPACITIES[mIndex_], nullptr);
 }
@@ -352,13 +354,7 @@ template<typename K, typename V, typename Prober, typename Hash, typename KEqual
 void HashTable<K,V,Prober,Hash,KEqual>::insertInternal(const ItemType& p, bool skipResize)
 {
     if (!skipResize) {
-        size_t effectiveItems = 0;
-        for (size_t i = 0; i < table_.size(); ++i) {
-            if (table_[i] != nullptr) {
-                effectiveItems++;
-            }
-        }
-        if ((double)(effectiveItems) / table_.size() >= resizeAlpha_) {
+        if ((double)(numOccupied_) / table_.size() >= resizeAlpha_) {
             resize();
         }
     }
@@ -371,6 +367,7 @@ void HashTable<K,V,Prober,Hash,KEqual>::insertInternal(const ItemType& p, bool s
     if (table_[idx] == nullptr) {
         table_[idx] = new HashItem(p);
         numItems_++;
+        numOccupied_++;
     }
     else if (kequal_(table_[idx]->item.first, p.first)) {
         table_[idx]->item.second = p.second;
@@ -472,6 +469,7 @@ void HashTable<K,V,Prober,Hash,KEqual>::resize()
     table_.clear();
     table_.resize(CAPACITIES[mIndex_], nullptr);
     numItems_ = 0;
+    numOccupied_ = 0;
 
     for (size_t i = 0; i < oldTable.size(); ++i) {
         if (oldTable[i] != nullptr && !oldTable[i]->deleted) {
